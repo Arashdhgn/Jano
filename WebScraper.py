@@ -39,7 +39,8 @@ class ShabIrScraper:
             url_site = mainUrl + str(page)
             website = requests.get(url_site)
             soup = BeautifulSoup(website.text,'html.parser')
-            WholeText = soup.find_all('div', {'class': "MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation1 MuiCard-root rtl-mui-1wgherz"})#('li', {'class': "MuiGrid-root MuiGrid-grid-xs-1 MuiGrid-grid-sm-5 MuiGrid-grid-md-4 home-card-item rtl-mui-1wb2hol"})
+            WholeText = soup.find_all('div', {'class': "MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation1 MuiCard-root rtl-mui-pdeu6g"})#('li', {'class': "MuiGrid-root MuiGrid-grid-xs-1 MuiGrid-grid-sm-5 MuiGrid-grid-md-4 home-card-item rtl-mui-1wb2hol"})
+            # print (WholeText)
             if len(WholeText) == 0:
                 break
             for i in range(len(WholeText)):
@@ -180,7 +181,7 @@ class ShabIrScraper:
                 time.sleep(10.0)
                 for link in cityplaceslinklist:
                     info = ShabIrScraper.GetPlaceinfo(link)
-                    Calendarjson = ShabIrScraper.getCalendarJson(link,'from_date=1402-02-01&to_date=1402-06-01')
+                    Calendarjson = ShabIrScraper.getCalendarJson(link,'from_date=1402-06-01&to_date=1402-07-01')
                     if info != ['','','','','','','','','','','','','','']:
                         PlaceCalendarData = ShabIrScraper.GetPlaceCalendar(Calendarjson[0], info[0])
                         PlaceData['PlaceCode'].append(info[0])
