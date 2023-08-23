@@ -2,40 +2,60 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 
+import SQLconnection
 
-class ShabIrScraper:
+
+class ShabScrapperTexts:
+    CityBoxClass = 'bg-cover city-item rtl-mui-1hlq8s2 e1j1qvdd11'
+    CityNameClass = 'city-name'
+    CityNameReplacementstart = '<span class="city-name">'
+    CityNameReplacementend = '</span>'
+    CityLinkPrefix = 'https://www.shab.ir/search/city/'
+    PlaceInfoInserts = ''
+
     def __init__(self):
-        pass
+        self.CityBoxClass = 'bg-cover city-item rtl-mui-1hlq8s2 e1j1qvdd11'
+        self.CityNameClass = 'city-name'
+        self.CityNameReplacementstart = '<span class="city-name">'
+        self.CityNameReplacementend = '</span>'
+
+
+class ShabIrScraper():
+    texts = ShabScrapperTexts()
+
+    def __init__(self):
+        self.texts = ShabScrapperTexts
     #to get the links of the popular cities and their names
-    def Getsoup(url_site):
+    def Getsoup(self,url_site):
         # url_site = "https://shab.ir"
         website = requests.get(url_site)
         soup = BeautifulSoup(website.text,'html.parser')
         return soup
 
-    def GetPopularCitylink(soup):
+    def GetPopularCitylink(self,soup):
         CityLinks = []
         CityNames = []
         # url_site = "https://shab.ir"
         # website = requests.get(url_site)
         # soup = BeautifulSoup(website.text,'html.parser')
-        WholeText = soup.find_all('a', {'class': "bg-cover city-item rtl-mui-1hlq8s2 e1j1qvdd11"})
+        WholeText = soup.find_all('a', {'class': self.texts.CityBoxClass})
         for i in range(len(WholeText)):
             if WholeText[i]:
 
-                CityNamedirty = WholeText[i].find('span', {'class': 'city-name'.split(' ')})
+                CityNamedirty = WholeText[i].find('span', {'class': self.texts.CityNameClass.split(' ')})
                 if type(CityNamedirty) != 'bs4.element.Tag':
                     CityName = str(CityNamedirty)
-                    CityName = CityName.replace('<span class="city-name">','').replace('</span>','')
+                    CityName = CityName.replace(self.texts.CityNameReplacementstart,'').replace(self.texts.CityNameReplacementend,'')
                     CityNames.append(CityName)
                     CityLinks.append('https://www.shab.ir/search/city/' + CityName)
         return [CityNames,CityLinks]
 
 
-    def getplacespercity(CityName,CityLink):
+    def getplacespercity(self,CityName,CityLink):
         PlaceLinks = []
         mainUrl = CityLink+'?page='
         for page in range (1,100):
+            print ('Page')
             url_site = mainUrl + str(page)
             website = requests.get(url_site)
             soup = BeautifulSoup(website.text,'html.parser')
@@ -51,9 +71,9 @@ class ShabIrScraper:
         return [CityName , PlaceLinks]
 
 
-    def GetPlaceinfo(PlaceLink):
+    def GetPlaceinfo(self,PlaceLink):
         if len(PlaceLink) != 0:
-            PlaceInfoSoup = ShabIrScraper.Getsoup('https://www.shab.ir/' + PlaceLink)
+            PlaceInfoSoup = ShabIrScraper.Getsoup(ShabIrScraper,'https://www.shab.ir/' + PlaceLink)
         else:
             return ['','','','','','','','','','','','','','']
             print ('no place info')
@@ -80,7 +100,7 @@ class ShabIrScraper:
         if len(WholeText) != 0:
             PlaceScore = str(WholeText[0]).replace('<div class="rating MuiBox-root rtl-mui-0">', '').replace('</div>', '')
         else :
-            PlaceScore = ''
+            PlaceScore = '0'
         print(PlaceScore)
 
         #From Price
@@ -90,7 +110,7 @@ class ShabIrScraper:
             PlaceFromScore.replace(',','')
 
         else :
-            PlaceFromScore = ''
+            PlaceFromScore = '0'
         print(PlaceFromScore)
 
         #location
@@ -137,6 +157,8 @@ class ShabIrScraper:
                     print (PlaceSecurityType)
                     Wholetext2 = WholeTextDirty[i].find_all('p')
                     PlaceM2 = str(Wholetext2[4]).replace('<p class="inlineBlock secondaryInfo"> <!-- -->','').replace('<!-- --> متر</p>','')
+                    if PlaceM2 == '':
+                        PlaceM2 = '0'
                     PlaceRooms = str(Wholetext2[2]).replace('<p class="inlineBlock secondaryInfo">','').replace('<!-- --> <!-- -->اتاق</p>','').replace('</p>','')
                     print(PlaceM2)
                     print (PlaceRooms)
@@ -144,6 +166,8 @@ class ShabIrScraper:
                     WholeText = WholeTextDirty[i].find('h3')
                     #Capacity
                     PlaceCapacity = str(WholeText)[:10].replace('<h3>','').replace('<!--','')
+                    if PlaceCapacity == '':
+                        PlaceCapacity = ''
                     print (PlaceCapacity)
                     #ExtraPersonCost
 
@@ -153,6 +177,8 @@ class ShabIrScraper:
                         PlaceExtraPersonCost = WholeTextList2[2].replace('<!-- ','')
                         PlaceExtraPersonCost.replace(',','')
                     print(PlaceExtraPersonCost)
+                    if PlaceExtraPersonCost == '':
+                        PlaceExtraPersonCost = '0'
         return [PlaceCode,PlaceName,PlaceScore,PlaceFromScore,PlaceProvince,PlaceCity,PlaceNeighborhood,PlaceM2
             ,PlaceRooms,PlaceCapacity,PlaceBuildingType,PlaceRentalType,PlaceSecurityType,PlaceExtraPersonCost]
 
@@ -160,63 +186,105 @@ class ShabIrScraper:
     def GetShabIRData():
         import time as time
 
-        PlaceData = {'PlaceCode' : [],'PlaceName' : [],'PlaceScore' : [],'PlaceFromPrice' : [],'PlaceProvince' : [],
+        CityPlaceData = {'PlaceCode' : [],'PlaceName' : [],'PlaceScore' : [],'PlaceFromPrice' : [],'PlaceProvince' : [],
                      'PlaceCity' : [],'PlaceNeighborhood'  : [],'PlaceM2' : [],'PlaceRooms' : [],'PlaceCapacity' : [],
                      'PlaceBuildingType': [],'PlaceRentalType': [],'PlaceSecurityType': [],'PlaceExtraPersonCost': []}
-        CalendarData = {'PlaceCode': [], 'Year': [], 'Month': [], 'Day': [], 'Price': [], 'Currency': [],
+        PlaceDatadf = pd.DataFrame(CityPlaceData)
+        CityCalendarData = {'PlaceCode': [],'Date' : [], 'Year': [], 'Month': [], 'Day': [], 'Price': [], 'Currency': [],
                         'is_holiday': [], 'is_peek': [], 'is_unavailable': [], 'is_promoted_day': [],
                         'is_non_bookable': []}
-        TestSoup = ShabIrScraper.Getsoup("https://shab.ir")
-        CityList = ShabIrScraper.GetPopularCitylink(TestSoup)
+        CalendarDataDF = pd.DataFrame(CityCalendarData)
+        TestSoup = ShabIrScraper.Getsoup(ShabIrScraper,"https://shab.ir")
+        CityList = ShabIrScraper.GetPopularCitylink(ShabIrScraper,TestSoup)
         print(CityList)
         CityPlacesLinks = []
         PlacesCityNames = []
         for i in range (len(CityList[0])):
-            CityLinkList = ShabIrScraper.getplacespercity(CityList[0][i], CityList[1][i])
+            CityLinkList = ShabIrScraper.getplacespercity(ShabIrScraper,CityList[0][i], CityList[1][i])
             print(CityLinkList)
             CityPlacesLinks.append(CityLinkList[0])
             PlacesCityNames.append(CityLinkList[1])
             print(len(CityLinkList[1]))
             for cityplaceslinklist in CityLinkList:
+                CityPlaceDataDF = pd.DataFrame(CityPlaceData)
+                CityCalendarDataDF = pd.DataFrame(CityCalendarData)
+                PlaceDatadf.append(CityPlaceDataDF,ignore_index=True)
+                CalendarDataDF.append(CityCalendarDataDF)
+                PlaceDatadf.to_csv('PlacesInfoShabIr.csv', encoding='utf-8')
+                CalendarDataDF.to_csv('PlacesCalendarShabIr.csv', encoding='utf-8')
+
                 time.sleep(10.0)
+                CityPlaceData = {'PlaceCode': [], 'PlaceName': [], 'PlaceScore': [], 'PlaceFromPrice': [],
+                             'PlaceProvince': [],
+                             'PlaceCity': [], 'PlaceNeighborhood': [], 'PlaceM2': [], 'PlaceRooms': [],
+                             'PlaceCapacity': [],
+                             'PlaceBuildingType': [], 'PlaceRentalType': [], 'PlaceSecurityType': [],
+                             'PlaceExtraPersonCost': []}
+                CityCalendarData = {'PlaceCode': [],'Date' : [], 'Year': [], 'Month': [], 'Day': [], 'Price': [], 'Currency': [],
+                                'is_holiday': [], 'is_peek': [], 'is_unavailable': [], 'is_promoted_day': [],
+                                'is_non_bookable': []}
                 for link in cityplaceslinklist:
-                    info = ShabIrScraper.GetPlaceinfo(link)
-                    Calendarjson = ShabIrScraper.getCalendarJson(link,'from_date=1402-06-01&to_date=1402-07-01')
+                    #TODO Make sure the ID doesnt Exist in the Database for more than 10 days
+                    info = ShabIrScraper.GetPlaceinfo(ShabIrScraper,link)
+                    Calendarjson = ShabIrScraper.getCalendarJson(ShabIrScraper,link,'from_date=1402-06-01&to_date=1402-07-01')
                     if info != ['','','','','','','','','','','','','','']:
-                        PlaceCalendarData = ShabIrScraper.GetPlaceCalendar(Calendarjson[0], info[0])
-                        PlaceData['PlaceCode'].append(info[0])
-                        PlaceData['PlaceName'].append(info[1])
-                        PlaceData['PlaceScore'].append(info[2])
-                        PlaceData['PlaceFromPrice'].append(info[3])
-                        PlaceData['PlaceProvince'].append(info[4])
-                        PlaceData['PlaceCity'].append(info[5])
-                        PlaceData['PlaceNeighborhood'].append(info[6])
-                        PlaceData['PlaceM2'].append(info[7])
-                        PlaceData['PlaceRooms'].append(info[8])
-                        PlaceData['PlaceCapacity'].append(info[9])
-                        PlaceData['PlaceBuildingType'].append(info[10])
-                        PlaceData['PlaceRentalType'].append(info[11])
-                        PlaceData['PlaceSecurityType'].append(info[12])
-                        PlaceData['PlaceExtraPersonCost'].append(info[13])
+                        PlaceCalendarData = ShabIrScraper.GetPlaceCalendar(ShabIrScraper,Calendarjson[0], info[0])
+                        CityPlaceData['PlaceCode'].append(int(info[0].strip()))
+                        CityPlaceData['PlaceName'].append(info[1].strip())
+                        CityPlaceData['PlaceScore'].append(float(info[2].strip()))
+                        CityPlaceData['PlaceFromPrice'].append(int(info[3].strip().replace(',','')))
+                        CityPlaceData['PlaceProvince'].append(info[4].strip())
+                        CityPlaceData['PlaceCity'].append(info[5].strip())
+                        CityPlaceData['PlaceNeighborhood'].append(info[6].strip())
+                        CityPlaceData['PlaceM2'].append(int(info[7].strip()))
+                        CityPlaceData['PlaceRooms'].append(info[8].strip())
+                        CityPlaceData['PlaceCapacity'].append(int(info[9].strip()))
+                        CityPlaceData['PlaceBuildingType'].append(info[10].strip())
+                        CityPlaceData['PlaceRentalType'].append(info[11].strip())
+                        CityPlaceData['PlaceSecurityType'].append(info[12].strip())
+                        CityPlaceData['PlaceExtraPersonCost'].append(int(info[13].strip().replace(',','')))
+
+                        PlaceInfoInsertList = [int(info[0].strip()), info[1].strip(), int(info[2].strip().replace('.','')),
+                                           int(info[3].strip().replace(',','')),info[4].strip(),info[5].strip(),
+                                           info[6].strip(),int(info[7].strip()),info[8].strip(),
+                                           int(info[9].strip()),info[10].strip(),info[11].strip(),info[12].strip(),
+                                           int(info[13].strip().replace(',',''))]
+                        SQLconnection.ShabIRSQL.PlaceInfoInsert(SQLconnection.ShabIRSQL,PlaceInfoInsertList)
                         for i in range(0, len (PlaceCalendarData['PlaceCode'])):
-                            CalendarData['PlaceCode'].append(PlaceCalendarData['PlaceCode'][i])
-                            CalendarData['Year'].append(PlaceCalendarData['Year'][i])
-                            CalendarData['Month'].append(PlaceCalendarData['Month'][i])
-                            CalendarData['Day'].append(PlaceCalendarData['Day'][i])
-                            CalendarData['Price'].append(PlaceCalendarData['Price'][i])
-                            CalendarData['Currency'].append(PlaceCalendarData['Currency'][i])
-                            CalendarData['is_holiday'].append(PlaceCalendarData['is_holiday'][i])
-                            CalendarData['is_peek'].append(PlaceCalendarData['is_peek'][i])
-                            CalendarData['is_unavailable'].append(PlaceCalendarData['is_unavailable'][i])
-                            CalendarData['is_promoted_day'].append(PlaceCalendarData['is_promoted_day'][i])
-                            CalendarData['is_non_bookable'].append(PlaceCalendarData['is_non_bookable'][i])
+                            CityCalendarData['PlaceCode'].append(PlaceCalendarData['PlaceCode'][i])
+                            CityCalendarData['Date'].append(PlaceCalendarData['Year'][i]+'-'+PlaceCalendarData['Month'][i]+'-'+str(PlaceCalendarData['Day'][i]))
+                            CityCalendarData['Year'].append(PlaceCalendarData['Year'][i])
+                            CityCalendarData['Month'].append(PlaceCalendarData['Month'][i])
+                            CityCalendarData['Day'].append(PlaceCalendarData['Day'][i])
+                            CityCalendarData['Price'].append(PlaceCalendarData['Price'][i])
+                            CityCalendarData['Currency'].append(PlaceCalendarData['Currency'][i])
+                            CityCalendarData['is_holiday'].append(PlaceCalendarData['is_holiday'][i])
+                            CityCalendarData['is_peek'].append(PlaceCalendarData['is_peek'][i])
+                            CityCalendarData['is_unavailable'].append(PlaceCalendarData['is_unavailable'][i])
+                            CityCalendarData['is_promoted_day'].append(PlaceCalendarData['is_promoted_day'][i])
+                            CityCalendarData['is_non_bookable'].append(PlaceCalendarData['is_non_bookable'][i])
+
+                            PlaceCalendarInfoInsertList = [int(PlaceCalendarData['PlaceCode'][i]),
+                                                           PlaceCalendarData['Year'][i]+PlaceCalendarData['Month'][i]+str(PlaceCalendarData['Day'][i]),
+                                                           PlaceCalendarData['Year'][i],
+                                                           PlaceCalendarData['Month'][i],
+                                                           PlaceCalendarData['Day'][i],
+                                                           PlaceCalendarData['Price'][i],
+                                                           PlaceCalendarData['Currency'][i],
+                                                           PlaceCalendarData['is_holiday'][i],
+                                                           PlaceCalendarData['is_peek'][i],
+                                                           PlaceCalendarData['is_unavailable'][i],
+                                                           PlaceCalendarData['is_promoted_day'][i],
+                                                           PlaceCalendarData['is_non_bookable'][i]]
+                            SQLconnection.ShabIRSQL.PlaceCalendarInfoInsert(SQLconnection.ShabIRSQL,PlaceCalendarInfoInsertList)
 
 
-        return [PlaceData,CalendarData]
-    def getCalendarJson(PlaceLink,Date):
+
+        return [CityPlaceData,CityCalendarData]
+    def getCalendarJson(self,PlaceLink,Date):
 
         if len(PlaceLink) != 0:
-            PlaceInfoSoup = ShabIrScraper.Getsoup('https://www.shab.ir/' + PlaceLink)
+            PlaceInfoSoup = ShabIrScraper.Getsoup(ShabIrScraper,'https://www.shab.ir/' + PlaceLink)
         else:
             return ''
             print('no place info')
@@ -270,7 +338,7 @@ class ShabIrScraper:
 
 
 
-    def GetPlaceCalendar (JsonData, PlaceCode):
+    def GetPlaceCalendar (self,JsonData, PlaceCode):
 
         CalenderData = {'PlaceCode' : [],'Year': [],'Month': [],'Day': [],'Price': [],'Currency': [],'is_holiday': [],'is_peek' : [],'is_unavailable' : [],'is_promoted_day' : [],'is_non_bookable' : []}
 

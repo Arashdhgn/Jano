@@ -20,15 +20,49 @@ class SQL:
 
 
 class ShabIRSQL:
-    def insert_to_Place(PlaceInfo):
+    def PlaceInfoInsert(self,PlaceInfo):
         sql = SQL()
         sql.connect()
         curser = sql.connection.cursor()
-        curser.execute(f"INSERT INTO Place\
-                    output inserted.ID\
-                    values (?, ?, ?, ?, ?, ?, ?, ?)",
-                    ()
-                    )
+        curser.execute(f"INSERT INTO PlacesInfo\
+                        values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,GETDATE())",
+                        (PlaceInfo[0],
+                         PlaceInfo[1],
+                         PlaceInfo[2],
+                         PlaceInfo[3],
+                         PlaceInfo[4],
+                         PlaceInfo[5],
+                         PlaceInfo[6],
+                         PlaceInfo[7],
+                         PlaceInfo[8],
+                         PlaceInfo[9],
+                         PlaceInfo[10],
+                         PlaceInfo[11],
+                         PlaceInfo[12],
+                         PlaceInfo[13])
+                        )
+        curser.commit()
+
+    def PlaceCalendarInfoInsert(self,PlaceInfo):
+        sql = SQL()
+        sql.connect()
+        curser = sql.connection.cursor()
+        curser.execute(f"INSERT INTO PlaceCalendarInfo\
+                        values (?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (PlaceInfo[0],
+                        PlaceInfo[1],
+                        PlaceInfo[2],
+                        PlaceInfo[3],
+                        PlaceInfo[4],
+                        PlaceInfo[5],
+                        PlaceInfo[6],
+                        PlaceInfo[7],
+                        PlaceInfo[8],
+                        PlaceInfo[9],
+                        PlaceInfo[10],
+                        PlaceInfo[11])
+                        )
+        curser.commit()
 
 
 
